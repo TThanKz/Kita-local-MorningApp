@@ -9,10 +9,11 @@ Enthalten:
 - Stimmung per Piktogramm
 - Mitbringsel per Piktogramm + Freitext bei „Sonstiges“
 - grüner Ring nach Check-in
-- jeder Klick soll per Sound begleitet werden
-- Tagesbegrüßung und Verabschiedung, täglicher Sprachwechsel
+- jeder Klick soll per Sprach sound begleitet werden auf Deutsch
+- Tagesbegrüßung und Verabschiedung, täglicher Sprachwechsel (Text)
 - Muttersprache + bis zu 2 weitere Sprachen
 - Kinderprofil mit digitalem Bilderordner
+- Kinderprofil soll mit PIN geschützt werden
 - Foto aufnehmen/auswählen und nach Datum speichern
 - Bilder beim Abholen im Profil zeigen
 - Check-out/Abmelden
