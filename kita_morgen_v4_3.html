@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f5f0e8">
+<title>Kita Morgen – Check-in</title>
+<style>
+:root{--bg:#f7f4ee;--card:#fff;--ink:#263238;--muted:#6d777b;--accent:#79b99a;--accent2:#e9c46a;--danger:#d66a6a;--shadow:0 8px 25px #00000012}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
+button,input,select,textarea{font:inherit}button{border:0;cursor:pointer}
+header{position:sticky;top:0;z-index:5;background:#ffffffed;backdrop-filter:blur(12px);padding:12px 18px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #00000010}
+.logo{font-size:22px;font-weight:800}.nav button{padding:10px 14px;border-radius:12px;background:#eef1ee;margin-left:6px}
+main{max-width:1150px;margin:auto;padding:20px}.card{background:var(--card);border-radius:22px;padding:20px;box-shadow:var(--shadow);margin-bottom:18px}
+h1,h2,h3{margin-top:0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
+.group,.child,.mood,.item,.avatar{background:#fafafa;border:2px solid transparent;border-radius:20px;padding:18px;text-align:center;min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.group{font-size:18px;font-weight:700}.group .pic{font-size:50px}.child{min-height:150px;font-size:18px}.child .pic{font-size:58px;margin-bottom:5px}.child.checked{border-color:#62b984;box-shadow:0 0 0 5px #62b98422}.child.checked:after{content:"✓";position:absolute}.mood,.item{min-height:110px;font-size:16px}.mood .pic,.item .pic{font-size:42px}.selected{border-color:#79b99a;background:#eff8f2}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.primary,.secondary,.danger{padding:13px 18px;border-radius:14px;font-weight:700}.primary{background:var(--accent);color:#173325}.secondary{background:#edf0ee}.danger{background:#f4dddd;color:#8a2d2d}
+.back{background:none;color:#59656a;padding:5px 0}.hidden{display:none!important}.success{text-align:center;padding:35px}.success .big{font-size:72px}.muted{color:var(--muted)}.en{display:block;font-size:.72em;font-weight:400;color:var(--muted);margin-top:3px}.en-inline{font-size:.72em;font-weight:400;color:var(--muted)}.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.pill{display:inline-block;padding:6px 10px;border-radius:999px;background:#eef1ee;font-size:13px}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:11px;border-bottom:1px solid #eee}th{color:var(--muted);font-size:13px}
+input,select,textarea{width:100%;padding:12px;border:1px solid #d7ddda;border-radius:12px;background:white}label{display:block;font-weight:700;margin:10px 0 5px}
+.modal{position:fixed;inset:0;background:#0007;display:flex;align-items:center;justify-content:center;padding:15px;z-index:20}.modal .card{max-width:900px;width:100%;max-height:90vh;overflow:auto}
+.photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}.photo{border-radius:16px;overflow:hidden;background:#eee}.photo img{width:100%;aspect-ratio:1;object-fit:cover}.photo div{padding:8px;font-size:13px}
+.greeting{font-size:28px;font-weight:800;margin:10px 0}.confetti{font-size:42px}
+@media(max-width:600px){main{padding:12px}.card{padding:15px}.grid{grid-template-columns:repeat(2,1fr)}table{font-size:13px}}
+</style>
+</head>
+<body>
+<header><div class="logo">🌱 Kita Morgen</div><div class="nav"><button onclick="showDashboard()">Pädagogik <span class="en-inline">Staff</span></button><button onclick="showConfig()">Einstellungen <span class="en-inline">Settings</span></button></div></header>
+<main id="app"></main>
+
+<script>
+const KEY="kita_morgen_v4_3";
+const defaultData={
+ groups:[
+  {id:1,name:"Gruppe 1",pic:"🌱",children:[
+   {id:11,name:"Emma",avatar:"🌸",mother:"Deutsch",langs:["Englisch","Spanisch"],photos:[]},
+   {id:12,name:"Paul",avatar:"🚀",mother:"Deutsch",langs:["Englisch"],photos:[]},
+   {id:13,name:"Lina",avatar:"🦋",mother:"Türkisch",langs:["Deutsch","Englisch"],photos:[]},
+   {id:14,name:"Ben",avatar:"🦊",mother:"Deutsch",langs:["Englisch"],photos:[]}]},
+  {id:2,name:"Gruppe 2",pic:"🌈",children:[
+   {id:21,name:"Mia",avatar:"🌼",mother:"Deutsch",langs:["Englisch"],photos:[]},
+   {id:22,name:"Noah",avatar:"🐻",mother:"Arabisch",langs:["Deutsch","Englisch"],photos:[]},
+   {id:23,name:"Clara",avatar:"🦄",mother:"Deutsch",langs:["Französisch"],photos:[]},
+   {id:24,name:"Jonas",avatar:"🦁",mother:"Deutsch",langs:["Englisch"],photos:[]}]},
+  {id:3,name:"Gruppe 3",pic:"☀️",children:[
+   {id:31,name:"Lea",avatar:"🐝",mother:"Deutsch",langs:["Englisch"],photos:[]},
+   {id:32,name:"Finn",avatar:"🚗",mother:"Deutsch",langs:["Englisch","Spanisch"],photos:[]},
+   {id:33,name:"Ella",avatar:"🌙",mother:"Polnisch",langs:["Deutsch","Englisch"],photos:[]},
+   {id:34,name:"Max",avatar:"🦖",mother:"Deutsch",langs:["Englisch"],photos:[]}]}
+ ],
+ checkins:{}, settings:{}
+};
+let data=JSON.parse(localStorage.getItem(KEY)||"null")||defaultData;
+function save(){localStorage.setItem(KEY,JSON.stringify(data))}
+function today(){return new Date().toISOString().slice(0,10)}
+function key(id){return today()+"_"+id}
+const moods=[["😀","Fröhlich","Happy"],["🙂","Gut","Good"],["😐","So lala","So-so"],["😔","Traurig","Sad"],["😡","Wütend","Angry"],["😴","Müde","Tired"],["⚡","Voller Energie","Full of energy"],["🫶","Brauche Nähe","Need a cuddle"]];
+const items=[["🚗","Auto","Car"],["🦖","Dinosaurier","Dinosaur"],["🧸","Kuscheltier","Cuddly toy"],["🪆","Puppe","Doll"],["⚽","Ball","Ball"],["🧩","Spielzeug","Toy"],["📚","Buch","Book"],["🎨","Farbe","Paint"],["✏️","Stift","Pencil"],["🔵","Sonstiges","Other"]];
+const avatars=["🦊","🦁","🐼","🐨","🐸","🐯","🐵","🐰","🐻","🦄","🐳","🦋","🐝","🌈","⭐","🚀","🌞","🌸","🌙","🦖"];
+const languages=["Deutsch","Englisch","Spanisch","Französisch","Türkisch","Arabisch","Polnisch","Italienisch"];
+function allChildren(){return data.groups.flatMap(g=>g.children.map(c=>({...c,group:g})))}
+function getChild(id){return allChildren().find(c=>c.id==id)}
+function greet(child,kind="in"){
+ let langs=[child.mother,...(child.langs||[])].filter(Boolean);
+ let n=Math.floor((new Date().getDate()-1)/1)%langs.length; // daily rotation
+ let l=langs[n]||"Deutsch";
+ const t=new Date().getHours();
+ if(kind==="out"){
+  return ({Deutsch:"Tschüss!",Englisch:"Goodbye!",Spanisch:"¡Adiós!",Französisch:"Au revoir!",Türkisch:"Hoşça kal!",Arabisch:"مع السلامة!",Polnisch:"Do widzenia!",Italienisch:"Ciao!"}[l]||"Tschüss!");
+ }
+ return ({Deutsch:(t<11?"Guten Morgen!":"Guten Tag!"),Englisch:(t<11?"Good morning!":"Good afternoon!"),Spanisch:(t<11?"¡Buenos días!":"¡Buenas tardes!"),Französisch:(t<11?"Bonjour!":"Bon après-midi!"),Türkisch:(t<11?"Günaydın!":"İyi günler!"),Arabisch:(t<11?"صباح الخير!":"نهارك سعيد!"),Polnisch:(t<11?"Dzień dobry!":"Dzień dobry!"),Italienisch:(t<11?"Buongiorno!":"Buon pomeriggio!")}[l]||"Guten Morgen!");
+}
+function showGroups(){
+ app.innerHTML=`<div class="card"><h1>Wer bist du?<span class="en">Who are you?</span></h1><p class="muted">Wähle zuerst deine Gruppe.<br><span class="en-inline">Choose your group first.</span></p><div class="grid">${data.groups.map(g=>`<button class="group" onclick="showChildren(${g.id})"><div class="pic">${g.pic}</div>${esc(g.name)}</button>`).join("")}</div></div>`;
+}
+function showChildren(gid){
+ let g=data.groups.find(x=>x.id==gid);
+ app.innerHTML=`<div class="card"><button class="back" onclick="showGroups()">← Zurück <span class="en-inline">Back</span></button><h1>${g.pic} ${esc(g.name)}</h1><p class="muted">Wähle dich aus.<br><span class="en-inline">Choose yourself.</span></p><div class="grid">${g.children.map(c=>{let x=data.checkins[key(c.id)];return `<button class="child ${x?.in?'checked':''}" onclick="childStart(${c.id})"><div class="pic">${c.avatar}</div><b>${esc(c.name)}</b>${x?.in?'<span class="pill">Heute da ✓</span>':''}</button>`}).join("")}</div></div>`;
+}
+function childStart(id){
+ let c=getChild(id), x=data.checkins[key(id)];
+ if(x?.in){showChildProfile(id);return}
+ beginCheckin(id);
+}
+let checkinState={};
+
+function beginCheckin(id){
+ checkinState[id]={mood:null,items:[],other:"",pickupType:"parent",pickupChildId:null};
+ showMood(id);
+}
+
+function renderCheckin(id){
+ let s=checkinState[id]||{mood:null,items:[],other:"",pickupType:"parent",pickupChildId:null};
+ showMood(id);
+}
+
+function showMood(id){
+ let c=getChild(id), s=checkinState[id]||{mood:null,items:[],other:"",pickupType:"parent",pickupChildId:null};
+ app.innerHTML=`<div class="card">
+ <button class="back" onclick="showChildren(${c.group.id})">← Zurück <span class="en-inline">Back</span></button>
+ <h1>${c.avatar} ${esc(c.name)}</h1>
+ <h2>Wie geht es dir heute?<span class="en">How are you feeling today?</span></h2>
+ <div class="grid">${moods.map((m,i)=>`<button type="button" class="mood ${s.mood===i?'selected':''}" aria-pressed="${s.mood===i?'true':'false'}" onclick="selectMood(${id},${i})"><div class="pic">${m[0]}</div><span>${m[1]}</span><span class="en">${m[2]}</span></button>`).join("")}</div>
+ ${s.mood!=null?`
+ <h2 style="margin-top:25px">Was hast du heute mitgebracht?<span class="en">What did you bring today?</span></h2>
+ <p class="muted">Du kannst mehrere Sachen anklicken.<br><span class="en-inline">You can choose more than one.</span></p>
+ <div class="grid">${items.map((it,i)=>`<button type="button" class="item ${s.items.includes(i)?'selected':''}" aria-pressed="${s.items.includes(i)?'true':'false'}" onclick="selectItem(${id},${i})"><div class="pic">${it[0]}</div><span>${it[1]}${s.items.includes(i)?' ✓':''}</span><span class="en">${it[2]}</span></button>`).join("")}</div>
+ <div id="otherWrap" class="${s.items.includes(9)?'':'hidden'}">
+   <label>✏️ Sonstiges – was hast du mitgebracht?<span class="en">Other – what did you bring?</span></label>
+   <input id="otherText" type="text" placeholder="z. B. mein Lieblingsbuch" value="${esc(s.other||"")}" oninput="checkinState[${id}].other=this.value">
+ </div>
+
+ <h2 style="margin-top:25px">🚶 Wie gehst du heute nach Hause?<span class="en">How are you going home today?</span></h2>
+ <p class="muted">Wenn du mit einem anderen Kind mitgehst, kannst du es hier auswählen.<br><span class="en-inline">If you are going home with another child, choose them here.</span></p>
+ <div class="grid">
+   <button type="button" class="item ${s.pickupType==='parent'?'selected':''}" onclick="selectPickup(${id},'parent')"><div class="pic">👨‍👩‍👧</div><span>Mit meinen Eltern</span><span class="en">With my parents</span></button>
+   <button type="button" class="item ${s.pickupType==='other'?'selected':''}" onclick="selectPickup(${id},'other')"><div class="pic">👋</div><span>Gehe heut mit …</span><span class="en">Going home with …</span></button>
+   <button type="button" class="item ${s.pickupType==='alone'?'selected':''}" onclick="selectPickup(${id},'alone')"><div class="pic">🏠</div><span>Sonstige Abholung</span><span class="en">Other pickup</span></button>
+ </div>
+ ${s.pickupType==='alone'?`
+   <div class="card" style="margin-top:14px;background:#fafafa;border:1px solid #eee">
+     <label>👤 Mit wem geht das Kind mit?</label>
+     <span class="en">Who is the child going home with?</span>
+     <input id="pickupOtherText" type="text" placeholder="Name eingeben / Enter name" value="${esc(s.pickupOther||"")}" oninput="checkinState[${id}].pickupOther=this.value">
+   </div>`:''}
+ ${s.pickupType==='other'?`
+   <div class="card" style="margin-top:14px;background:#fafafa;border:1px solid #eee">
+     <h3 style="margin-bottom:8px">👫 Mit welchem Kind gehst du mit?<span class="en">Which child are you going home with?</span></h3>
+     <div class="grid">${allChildren().filter(k=>k.id!==id).map(k=>`<button type="button" class="child ${s.pickupChildId==k.id?'checked':''}" onclick="selectPickupChild(${id},${k.id})"><div class="pic">${k.avatar}</div><b>${esc(k.name)}</b>${s.pickupChildId==k.id?'<span class="pill">Ausgewählt ✓<span class="en">Selected</span></span>':''}</button>`).join("")}</div>
+   </div>`:''}
+
+ <div class="actions">
+   <button type="button" class="primary" onclick="finishCurrentCheckin(${id})"><span>Fertig</span><span class="en">Done</span></button>
+ </div>`:''}
+ </div>`;
+}
+
+function selectMood(id,i){
+ if(!checkinState[id]) beginCheckin(id);
+ checkinState[id].mood=i;
+ renderCheckin(id);
+}
+
+function selectItem(id,i){
+ if(!checkinState[id]) beginCheckin(id);
+ let s=checkinState[id];
+ s.items=s.items||[];
+ s.items=s.items.includes(i)?s.items.filter(x=>x!==i):[...s.items,i];
+ if(!s.items.includes(9)) s.other="";
+ renderCheckin(id);
+}
+
+function selectPickup(id,type){
+ if(!checkinState[id]) beginCheckin(id);
+ let s=checkinState[id];
+ s.pickupType=type;
+ if(type!=="other") s.pickupChildId=null;
+ if(type!=="alone") s.pickupOther="";
+ renderCheckin(id);
+}
+
+function selectPickupChild(id,childId){
+ if(!checkinState[id]) beginCheckin(id);
+ let s=checkinState[id];
+ s.pickupType="other";
+ s.pickupChildId=childId;
+ renderCheckin(id);
+}
+
+function finishCurrentCheckin(id){
+ let s=checkinState[id];
+ if(!s || s.mood==null){alert("Bitte wähle zuerst aus, wie es dir heute geht.");return;}
+ finishCheckin(id,s.mood,s.items||[],s.other||"",s.pickupType||"parent",s.pickupChildId||null,s.pickupOther||"");
+ delete checkinState[id];
+}
+
+function finishCheckin(id,mood,its,other,pickupType,pickupChildId,pickupOther){
+ let c=getChild(id);
+ let pickupChild=pickupChildId?getChild(pickupChildId):null;
+ let x={in:new Date().toISOString(),mood,items:its||[],other:other||"",pickupType:pickupType||"parent",pickupChildId:pickupChildId||null,pickupChildName:pickupChild?pickupChild.name:"",pickupOther:pickupOther||"",checkedOut:null};
+ data.checkins[key(id)]=x; save();
+ app.innerHTML=`<div class="card success"><div class="confetti">🌈 ⭐ 🌱</div><div class="big">${c.avatar}</div><div class="greeting">${greet(c,"in")}</div><h2>Schön, dass du da bist!<span class="en">Nice to see you!</span></h2><p class="muted">Dein Check-in wurde gespeichert.<br><span class="en-inline">Your check-in has been saved.</span></p>${pickupChild?`<p><span class="pill">👫 Heute geht ${esc(c.name)} mit ${esc(pickupChild.name)} mit.<br><span class="en-inline">Today ${esc(c.name)} is going home with ${esc(pickupChild.name)}.</span></span></p>`:(pickupOther?`<p><span class="pill">👤 Abholung: ${esc(pickupOther)}</span></p>`:"")}<div class="actions" style="justify-content:center"><button class="primary" onclick="showChildren(${c.group.id})">Fertig</button><button class="secondary" onclick="showChildProfile(${id})">Mein Profil</button></div></div>`;
+}
+
+function showChildProfile(id){
+ let c=getChild(id), x=data.checkins[key(id)], photos=c.photos||[];
+ app.innerHTML=`<div class="card"><button class="back" onclick="showChildren(${c.group.id})">← Zurück <span class="en-inline">Back</span></button><div class="row"><div style="font-size:65px">${c.avatar}</div><div><h1>${esc(c.name)}</h1><span class="pill">${esc(c.mother)}</span> ${(c.langs||[]).map(l=>`<span class="pill">${esc(l)}</span>`).join("")}</div></div>
+ <div class="actions"><button class="primary" onclick="photoAdd(${id})">📸 Bild des Tages hinzufügen</button>${x?.in&&!x.checkedOut?`<button class="danger" onclick="checkout(${id})">👋 Abholen / Abmelden</button>`:''}</div>
+ <h2 style="margin-top:28px">📁 Meine Bilder</h2><p class="muted">Hier kannst du deine Bilder aus den vergangenen Tagen ansehen und beim Abholen deinen Eltern zeigen.</p>
+ <div class="photos">${photos.slice().reverse().map(p=>`<div class="photo"><img src="${p.data}"><div><b>${p.date}</b>${p.note?`<br>${esc(p.note)}`:""}</div></div>`).join("")||'<p class="muted">Noch keine Bilder gespeichert.</p>'}</div></div>`;
+}
+function photoAdd(id){
+ let c=getChild(id);
+ app.innerHTML=`<div class="modal"><div class="card"><h2>📸 Bild für ${esc(c.name)}</h2><label>Foto aufnehmen oder auswählen</label><input id="photoFile" type="file" accept="image/*" capture="environment"><label>Kurze Beschreibung (optional)</label><input id="photoNote" placeholder="z. B. Mein Bauwerk"><div class="actions"><button class="secondary" onclick="showChildProfile(${id})">Abbrechen</button><button class="primary" onclick="savePhoto(${id})">Bild speichern</button></div></div></div>`;
+}
+function savePhoto(id){
+ let f=document.getElementById("photoFile").files[0]; if(!f)return alert("Bitte ein Bild auswählen.");
+ let r=new FileReader(); r.onload=()=>{let c=getChild(id);c.photos=c.photos||[];c.photos.push({date:new Date().toLocaleDateString("de-DE"),data:r.result,note:document.getElementById("photoNote").value});save();showChildProfile(id)};r.readAsDataURL(f);
+}
+function checkout(id){
+ let c=getChild(id); if(!data.checkins[key(id)])return; data.checkins[key(id)].checkedOut=new Date().toISOString();save();
+ app.innerHTML=`<div class="card success"><div class="big">👋</div><div class="greeting">${greet(c,"out")}</div><h2>Bis bald, ${esc(c.name)}!</h2><div class="actions" style="justify-content:center"><button class="primary" onclick="showGroups()">Fertig</button></div></div>`;
+}
+function showDashboard(){
+ let rows=allChildren().map(c=>{let x=data.checkins[key(c.id)];return {c,x}});
+ app.innerHTML=`<div class="card">
+   <div class="row" style="justify-content:space-between;align-items:center">
+     <h1 style="margin:0">👩‍🏫 Pädagogische Übersicht</h1>
+     <button class="secondary" onclick="showGroups()">← Zur Kinder-/Gruppenauswahl <span class="en-inline">Back to children/groups</span></button>
+   </div>
+   <div class="row" style="margin-top:14px">
+     <span class="pill">${rows.filter(r=>r.x?.in&&!r.x?.checkedOut).length} aktuell da</span>
+     <span class="pill">${rows.filter(r=>r.x?.in).length} eingecheckt heute</span>
+     <span class="pill">${rows.filter(r=>r.x?.pickupType==='other'&&r.x?.pickupChildId).length} gehen mit anderem Kind</span>
+   </div>
+   <div style="overflow:auto;margin-top:15px">
+   <table><thead><tr><th>Kind</th><th>Gruppe</th><th>Stimmung</th><th>Mitgebracht</th><th>Abholung / Mitgehen</th><th>Check-in</th><th>Abholung</th><th>Profil</th></tr></thead>
+   <tbody>${rows.map(r=>{
+     let c=r.c,x=r.x;
+     let pickup=x?(x.pickupType==='other'&&x.pickupChildId?`👫 Mit ${esc(x.pickupChildName||getChild(x.pickupChildId)?.name||"anderem Kind")}`:x.pickupType==='parent'?'👨‍👩‍👧 Eltern':(x.pickupOther?`👤 ${esc(x.pickupOther)}`:'🏠 Sonstige Abholung')):"–";
+     return `<tr>
+       <td>${c.avatar} <b>${esc(c.name)}</b></td>
+       <td>${esc(c.group.name)}</td>
+       <td>${x?moods[x.mood]?.[0]+" "+moods[x.mood]?.[1]:"–"}</td>
+       <td>${x?(x.items||[]).map(i=>items[i]?.[0]).join(" ")+(x.other?` ${esc(x.other)}`:""):"–"}</td>
+       <td><b>${pickup}</b></td>
+       <td>${x?new Date(x.in).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}):"–"}</td>
+       <td>${x?.checkedOut?new Date(x.checkedOut).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}):x?"da":"–"}</td>
+       <td><button class="secondary" onclick="showChildProfile(${c.id})">📁</button></td>
+     </tr>`;
+   }).join("")}</tbody></table></div>
+ </div>`;
+}
+
+function showConfig(){
+ app.innerHTML=`<div class="card"><h1>⚙️ Einstellungen</h1><p class="muted">Diese Testversion hat bewusst noch keine Anmeldung/Sicherung.</p>${data.groups.map(g=>`<div class="card" style="box-shadow:none;border:1px solid #eee"><h2>${g.pic} Gruppe</h2><label>Gruppenname</label><input id="gn${g.id}" value="${esc(g.name)}"><label>Gruppenbild / Symbol</label><select id="gp${g.id}">${avatars.map(a=>`<option ${a===g.pic?'selected':''}>${a}</option>`).join("")}</select><div class="actions"><button class="primary" onclick="saveGroup(${g.id})">Gruppe speichern</button></div></div>`).join("")}
+ <h2>Kinderprofile</h2>${allChildren().map(c=>`<div class="card" style="box-shadow:none;border:1px solid #eee"><div class="row"><div style="font-size:42px">${c.avatar}</div><b>${esc(c.name)}</b><span class="pill">${esc(c.group.name)}</span></div><label>Muttersprache</label><select id="m${c.id}">${languages.map(l=>`<option ${l===c.mother?'selected':''}>${l}</option>`).join("")}</select><label>2. und 3. Sprache (mit Komma trennen)</label><input id="l${c.id}" value="${esc((c.langs||[]).join(", "))}" placeholder="z. B. Englisch, Spanisch"><label>Profilbild</label><select id="a${c.id}">${avatars.map(a=>`<option ${a===c.avatar?'selected':''}>${a}</option>`).join("")}</select><div class="actions"><button class="primary" onclick="saveChild(${c.id})">Profil speichern</button></div></div>`).join("")}
+ <div class="actions"><button class="danger" onclick="resetDemo()">Demo-Daten zurücksetzen</button><button class="secondary" onclick="showGroups()">Zur Kinderansicht</button></div></div>`;
+}
+function saveGroup(id){let g=data.groups.find(x=>x.id==id);g.name=document.getElementById("gn"+id).value;g.pic=document.getElementById("gp"+id).value;save();showConfig()}
+function saveChild(id){let c=getChild(id);c.mother=document.getElementById("m"+id).value;c.langs=document.getElementById("l"+id).value.split(",").map(x=>x.trim()).filter(Boolean).slice(0,2);c.avatar=document.getElementById("a"+id).value;save();showConfig()}
+function resetDemo(){if(confirm("Alle Testdaten und heutigen Check-ins löschen?")){localStorage.removeItem(KEY);location.reload()}}
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+showGroups();
+</script>
+</body></html>
